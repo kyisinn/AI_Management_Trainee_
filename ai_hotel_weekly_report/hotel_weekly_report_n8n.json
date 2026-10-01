@@ -1,0 +1,145 @@
+{
+  "name": "Weekly Hotel Performance Reports",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "0fd047dd-7be6-4f3f-9c20-21e953a9f2e1",
+      "name": "Manual test",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-900, 120]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "93160a50-e467-4987-aa45-9cde0aeabacd",
+      "name": "Every Monday 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-900, -80]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "50d04054-f961-440b-a638-220e80d3f16c",
+      "name": "Read hotel rows",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [-650, 20]
+    },
+    {
+      "parameters": {
+        "jsCode": "const TEST_MODE = true;\nconst TEST_EMAIL = 'kyisinthant123mdy@gmail.com';\nconst MODEL = 'gpt-5-mini';\n\nconst rows = $input.all().map((item, index) => {\n  const source = item.json;\n  const hotel = String(source.brandname ?? '').trim();\n  const revenue = Number(source.revenue);\n  const orders = Number(source.Order);\n  const ownerEmail = String(source['Boss Gmail'] ?? '').trim();\n  if (!hotel || !Number.isFinite(revenue) || revenue < 0 || !Number.isFinite(orders) || orders < 0 || !ownerEmail) {\n    throw new Error(`Invalid data in input row ${index + 2}`);\n  }\n  return { hotel, revenue, orders, owner_email: ownerEmail };\n});\nif (!rows.length) throw new Error('No hotel rows were returned');\n\nconst median = values => {\n  const sorted = [...values].sort((a, b) => a - b);\n  const middle = Math.floor(sorted.length / 2);\n  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;\n};\nconst medianRevenue = median(rows.map(row => row.revenue));\nconst medianOrders = median(rows.map(row => row.orders));\nconst now = new Date();\nconst mondayOffset = (now.getDay() + 6) % 7;\nconst thisMonday = new Date(now);\nthisMonday.setDate(now.getDate() - mondayOffset);\nconst weekEnd = new Date(thisMonday);\nweekEnd.setDate(thisMonday.getDate() - 1);\nconst weekStart = new Date(weekEnd);\nweekStart.setDate(weekEnd.getDate() - 6);\nconst isoDate = date => date.toISOString().slice(0, 10);\nconst escapeHtml = value => String(value).replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));\n\nreturn rows.map(row => {\n  const doingWell = row.revenue >= medianRevenue && row.orders >= medianOrders;\n  const noActivity = row.revenue === 0 && row.orders === 0;\n  const status = doingWell ? 'Doing well' : 'Needs improvement';\n  const week_start = isoDate(weekStart);\n  const week_end = isoDate(weekEnd);\n  let lead;\n  let action;\n  if (doingWell) {\n    lead = 'You finished at or above the hotel group median on both revenue and bookings.';\n    action = 'Keep the campaigns and availability settings that supported this result, and review the strongest booking sources for repeatable wins.';\n  } else if (noActivity) {\n    lead = 'No revenue or bookings were recorded for the week.';\n    action = 'First confirm that the data feed is complete. If it is, review availability, pricing, and active sales channels.';\n  } else {\n    const weak = [];\n    if (row.revenue < medianRevenue) weak.push('revenue');\n    if (row.orders < medianOrders) weak.push('bookings');\n    lead = `This week, ${weak.join(' and ')} finished below the hotel group median.`;\n    action = 'Review availability and pricing for the coming two weeks, then focus promotions on the channels that produced the most recent bookings.';\n  }\n  const hotelHtml = escapeHtml(row.hotel);\n  const fallback_subject = `Weekly performance summary - ${row.hotel}`;\n  const fallback_html = `<p>Hello ${hotelHtml} team,</p><p>Here is your performance summary for ${week_start} to ${week_end}. You recorded <strong>${row.orders.toLocaleString('en-US')} bookings</strong> and <strong>${row.revenue.toLocaleString('en-US')}</strong> in revenue.</p><p>${lead} The comparison benchmark was ${medianOrders.toLocaleString('en-US')} bookings and ${medianRevenue.toLocaleString('en-US')} in revenue.</p><p><strong>Recommended next step:</strong> ${action}</p><p>Best regards,<br>Hotel Partnerships Team</p>`;\n  const facts = { ...row, status, no_activity: noActivity, median_revenue: medianRevenue, median_orders: medianOrders, week_start, week_end };\n  const api_payload = {\n    model: MODEL,\n    store: false,\n    instructions: 'Write a concise weekly hotel performance email. Use only the supplied facts. Do not invent causes, targets, percentages, or comparisons. Be supportive and specific, include one practical next step, and produce safe simple HTML with no links or images.',\n    input: JSON.stringify(facts),\n    text: {\n      format: {\n        type: 'json_schema',\n        name: 'hotel_weekly_email',\n        strict: true,\n        schema: {\n          type: 'object',\n          properties: { subject: { type: 'string' }, html_body: { type: 'string' } },\n          required: ['subject', 'html_body'],\n          additionalProperties: false\n        }\n      }\n    }\n  };\n  return { json: { ...facts, recipient: TEST_MODE ? TEST_EMAIL : row.owner_email, test_mode: TEST_MODE, fallback_subject, fallback_html, api_payload } };\n});"
+      },
+      "id": "ab855b70-4e30-4127-8dfe-d0d11a5e3ae5",
+      "name": "Calculate benchmarks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-410, 20]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/responses",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json.api_payload) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json",
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "4357cc47-554c-4ea0-a2cc-463ff2f04fd8",
+      "name": "Generate message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-160, 20],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const generated = $input.all();\nconst sourceRows = $('Calculate benchmarks').all();\nreturn generated.map((item, index) => {\n  const source = sourceRows[index].json;\n  let outputText = item.json.output_text;\n  if (!outputText && Array.isArray(item.json.output)) {\n    for (const output of item.json.output) {\n      for (const content of output.content ?? []) {\n        if (content.type === 'output_text') outputText = content.text;\n      }\n    }\n  }\n  let subject = source.fallback_subject;\n  let html_body = source.fallback_html;\n  let message_source = 'deterministic_fallback';\n  try {\n    const parsed = JSON.parse(outputText ?? '{}');\n    if (typeof parsed.subject === 'string' && typeof parsed.html_body === 'string') {\n      subject = parsed.subject;\n      html_body = parsed.html_body;\n      message_source = 'openai';\n    }\n  } catch (error) {\n    // Fallback is intentional so one model error does not stop the batch.\n  }\n  return { json: { ...source, subject, html_body, message_source } };\n});"
+      },
+      "id": "7d843cb6-7dc4-4a2a-a832-d8f9d415b7bb",
+      "name": "Validate or use fallback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [90, 20]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.recipient }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.html_body }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Hotel Partnerships Team"
+        }
+      },
+      "id": "fb0b0c05-ea39-4dfb-a58e-18bb9c728ff5",
+      "name": "Send test email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [340, 20]
+    }
+  ],
+  "connections": {
+    "Manual test": {
+      "main": [[{"node": "Read hotel rows", "type": "main", "index": 0}]]
+    },
+    "Every Monday 08:00": {
+      "main": [[{"node": "Read hotel rows", "type": "main", "index": 0}]]
+    },
+    "Read hotel rows": {
+      "main": [[{"node": "Calculate benchmarks", "type": "main", "index": 0}]]
+    },
+    "Calculate benchmarks": {
+      "main": [[{"node": "Generate message", "type": "main", "index": 0}]]
+    },
+    "Generate message": {
+      "main": [[{"node": "Validate or use fallback", "type": "main", "index": 0}]]
+    },
+    "Validate or use fallback": {
+      "main": [[{"node": "Send test email", "type": "main", "index": 0}]]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Bangkok"
+  },
+  "active": false,
+  "versionId": "9c8d7111-94b0-4d1d-b7de-f56a50688f14",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

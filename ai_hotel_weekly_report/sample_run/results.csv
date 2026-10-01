@@ -1,0 +1,11 @@
+﻿hotel,revenue,orders,status,median_revenue,median_orders,revenue_vs_median,orders_vs_median,week_start,week_end,owner_email,recipient,test_mode,message_source,ai_error
+松河商旅 Songhe Inn,482000.0,96.0,Doing well,285500.0,62.5,196500.0,33.5,2026-09-28,2026-10-04,supakitphayungsiriphon@gmail.com,reviewer@example.com,True,deterministic_fallback,
+河畔城市旅店 Riverside Hotel,315000.0,71.0,Doing well,285500.0,62.5,29500.0,8.5,2026-09-28,2026-10-04,ceo.riverside@example.com,reviewer@example.com,True,deterministic_fallback,
+藍灣青年旅舍 Blue Bay Hostel,128000.0,54.0,Needs improvement,285500.0,62.5,-157500.0,-8.5,2026-09-28,2026-10-04,owner.bluebay@example.com,reviewer@example.com,True,deterministic_fallback,
+晴空溫泉會館 Sky Spa Resort,598000.0,102.0,Doing well,285500.0,62.5,312500.0,39.5,2026-09-28,2026-10-04,boss.skyspa@example.com,reviewer@example.com,True,deterministic_fallback,
+橙光設計旅店 Orange Light,256000.0,49.0,Needs improvement,285500.0,62.5,-29500.0,-13.5,2026-09-28,2026-10-04,gm.orangelight@example.com,reviewer@example.com,True,deterministic_fallback,
+森丘山居 Forest Hill,92000.0,21.0,Needs improvement,285500.0,62.5,-193500.0,-41.5,2026-09-28,2026-10-04,owner.foresthill@example.com,reviewer@example.com,True,deterministic_fallback,
+海角小屋 Cape Cottage,0.0,0.0,Needs improvement,285500.0,62.5,-285500.0,-62.5,2026-09-28,2026-10-04,owner.capecottage@example.com,reviewer@example.com,True,deterministic_fallback,
+星辰商務旅店 Starlight Biz,374000.0,80.0,Doing well,285500.0,62.5,88500.0,17.5,2026-09-28,2026-10-04,ceo.starlight@example.com,reviewer@example.com,True,deterministic_fallback,
+文青行旅 Artis Inn,167000.0,37.0,Needs improvement,285500.0,62.5,-118500.0,-25.5,2026-09-28,2026-10-04,owner.artis@example.com,reviewer@example.com,True,deterministic_fallback,
+望海精品旅館 Ocean View,442000.0,88.0,Doing well,285500.0,62.5,156500.0,25.5,2026-09-28,2026-10-04,gm.oceanview@example.com,reviewer@example.com,True,deterministic_fallback,
